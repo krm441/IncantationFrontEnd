@@ -9,7 +9,7 @@ Incantation::Lexer::Lexer(const std::string& in) : mIndex(0), mLine(1), mBuffer(
 {
 }
 
-Tokens Incantation::Lexer::LexAll()
+Tokens& Incantation::Lexer::LexAll()
 {
 	if (mBuffer.empty()) // Early return
 		throw StopCallInc("File is empty");
@@ -33,134 +33,147 @@ std::unordered_set<char> separs
 void Lexer::LexStep()
 {
 	auto current_char = Peek();
-	switch (current_char)
+	//Parse only ASCII printable characters 32 - 126
+	if (current_char >= 32 && current_char <= 126)
 	{
-	case '(':	case '[':	case '{':
-		mStack.push(mLine);
-	break;
-	case ')':	case ']':	case '}':
-	{
-		if (mStack.empty())
-			throw SyntaxError("Possible brackets mismatch located, at line: ", mLine);
-		mStack.pop();
-	}
-	break;
-	case '<':	case '>':	case '!':	case '=':
-	{
-		Add();
-		Advance();
-		if (Peek() == '=')
+		switch (current_char)
+		{
+		case '(':	case '[':	case '{':
+			mStack.push(mLine);
+			break;
+		case ')':	case ']':	case '}':
+		{
+			if (mStack.empty())
+				throw SyntaxError("Possible brackets mismatch located, at line: ", mLine);
+			mStack.pop();
+		}
+		break;
+		case '<':	case '>':	case '!':	case '=':
 		{
 			Add();
 			Advance();
-			Dump();
-			return;
-		}
-		else
-		{
-			Dump();
-			return;
-		}
-		assert(false);
-	}
-	break;
-	case '\"':	case '\'':
-	{
-		int beginLine = mLine;
-		char openning_char = current_char;
-		Add();
-		Advance();
-		SafeWhileLoop loop;
-		while (loop.True())
-		{
-			// error
-			if (mIndex == mBuffer.size() || Peek() == '\n')
-				throw SyntaxError("Strig began at line: ", beginLine, "but never ended");
-			// exit
-			if (Peek() == openning_char)
-				break;
-			Add();
-			Advance();
-		}
-		Add(); // eat the ' " ' or ' ' '
-		Dump();
-		Advance();
-		return;
-	}
-	break;
-	case '/':
-	{
-		if (PeekNext() == '/')
-		{
-			Advance();
-			Dump();
-			while (Peek() != '\n')
+			if (Peek() == '=')
 			{
+				Add();
 				Advance();
+				Dump();
+				return;
 			}
-			mLine++;
-			Advance();
-			return;
-		}
-		else if (PeekNext() == '*')
-		{
-			Advance();
-			Dump();
-
-			while (true)
+			else
 			{
-				if (Peek() == '*' && PeekNext() == '/')
-				{
+				Dump();
+				return;
+			}
+			assert(false);
+		}
+		break;
+		case '\"':	case '\'':
+		{
+			int beginLine = mLine;
+			char openning_char = current_char;
+			Add();
+			Advance();
+			SafeWhileLoop loop;
+			while (loop.True())
+			{
+				// error
+				if (mIndex == mBuffer.size() || Peek() == '\n')
+					throw SyntaxError("Strig began at line: ", beginLine, "but never ended");
+				// exit
+				if (Peek() == openning_char)
 					break;
-				}
-				else if (Peek() == '\n')
-				{
-					mLine++;
-				}
-
+				Add();
 				Advance();
 			}
-			Advance();
-			Advance();
-			return;
-		}
-		else
-		{
-			Dump(); // previous
-			Add(); // add the '/'
+			Add(); // eat the ' " ' or ' ' '
 			Dump();
 			Advance();
 			return;
 		}
-	}
-	break;
-	case ' ':	case '\t':
-		Dump();
+		break;
+		case '/':
+		{
+			if (PeekNext() == '/')
+			{
+				Advance();
+				Dump();
+				while (Peek() != '\n')
+				{
+					Advance();
+				}
+				mLine++;
+				Advance();
+				return;
+			}
+			else if (PeekNext() == '*')
+			{
+				Advance();
+				Dump();
+
+				while (true)
+				{
+					if (Peek() == '*' && PeekNext() == '/')
+					{
+						break;
+					}
+					else if (Peek() == '\n')
+					{
+						mLine++;
+					}
+
+					Advance();
+				}
+				Advance();
+				Advance();
+				return;
+			}
+			else
+			{
+				Dump(); // previous
+				Add(); // add the '/'
+				Dump();
+				Advance();
+				return;
+			}
+		}
+		break;
+		case ' ':	//case '\t':
+			Dump();
+			Advance();
+			return;
+			break;
+		//case '\n':
+		//	Dump();
+		//	//mRet.push_back(Token("<<endl>>", mLine++));
+		//	mLine++;
+		//	Advance();
+		//	return;
+		//	break;
+
+		default:
+			break;
+		}
+
+		if (separs.find(Peek()) != separs.end())
+		{
+			Dump();
+			Add();
+			Dump();
+			Advance();
+			return;
+		}
+		Add();
 		Advance();
-		return;
-	break;
-	case '\n':
+	}
+	else if (current_char == '\n')
+	{
 		Dump();
 		//mRet.push_back(Token("<<endl>>", mLine++));
 		mLine++;
 		Advance();
 		return;
-	break;
-
-	default:
-		break;
 	}
-
-	if (separs.find(Peek()) != separs.end())
-	{
-		Dump();
-		Add();
-		Dump();
-		Advance();
-		return;
-	}
-	Add();
-	Advance();
+	else Advance();
 }
 
 void Incantation::Lexer::CheckBracketSolidity()
@@ -200,18 +213,19 @@ void Incantation::Lexer::Dump()
 	}
 	if (mTemp.size() == 1) 
 	{
-		if (mTemp.front() == ' ')
+		if (mTemp.front() == ' ' || mTemp.front() == '\n' || mTemp.front() == '\r')
 		{
 			mTemp.clear();
 			return;
 		}
-		else if (mTemp.front() == '\n')
-		{
-			mTemp.clear();
-			return;
-		}
+		//else if (mTemp.front() == '\n')
+		//{
+		//	mTemp.clear();
+		//	return;
+		//}
 	}
-
+	//Console console;
+	//console.log("blyad", mTemp, mTemp.size(), mTemp.front() == '\n', (int)mTemp.front());
 	mRet.push_back(Token(mTemp, mLine));
 
 	mTemp.clear();
