@@ -1,0 +1,24 @@
+#pragma once
+///STL
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <array>
+#include <utility>
+#include <memory>
+#include <functional>
+#include <variant>
+#include <stack>
+#include <tuple>
+#include <algorithm>
+#include <cassert>
+#include <mutex>
+#include <regex>
+#include <execution>
+#include <type_traits>
