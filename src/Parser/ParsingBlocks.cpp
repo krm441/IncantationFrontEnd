@@ -1,4 +1,4 @@
-#include "Core/IncFrontPCH.h"
+#include "Core/pchInc.h"
 #include "Parser/RDP.h"
 #include "Parser/Vault.h"
 #include "Logger/LOG.h"
@@ -26,6 +26,10 @@ Ptr<BlockStatement> Incantation::RDP::ParseCodeBlock(const CodeBlockSettings& se
 	{
 		Expect("{");
 		Advance();
+	}
+	else
+	{
+		settings.previous = block->vault;
 	}
 
 	SafeWhileLoop loop("Parsing Code Block");
@@ -58,6 +62,7 @@ Ptr<BlockStatement> Incantation::RDP::ParseCodeBlock(const CodeBlockSettings& se
 			break;
 		case Incantation::TokenType::Func:
 		{
+
 			auto func = ParseFunctionDecl(settings);
 
 			// Now add to vault

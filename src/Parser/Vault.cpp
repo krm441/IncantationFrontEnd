@@ -1,4 +1,4 @@
-#include "Core/IncFrontPCH.h"
+#include "Core/pchInc.h"
 #include "Vault.h"
 #include "ASTnodes.h"
 
@@ -28,6 +28,17 @@ bool Incantation::Vault::IsVar(const Ptr<IdentifierExpression>& var)
 	if (prev != nullptr)
 		return prev->IsVar(var);
 	else return false;
+}
+
+Ptr<VarObject>& Incantation::Vault::GetVar(const Ptr<IdentifierExpression>& name)
+{
+	if (mVars.find(name->id.Value()) != mVars.end())
+	{
+		return mVars[name->id.Value()];
+	}
+	if (prev != nullptr)
+		return prev->GetVar(name);
+	throw StopCallInc("Not found VAR in VAULT");
 }
 
 void Incantation::Vault::AddFunction(const Ptr<FunctionExpression>& function)
@@ -87,24 +98,30 @@ Ptr<FunctionExpression> Incantation::Vault::GetFunctionLocal(const std::string& 
 	throw SyntaxError("internal error : Vault::GetFunctionLocal " + name);
 }
 
+const Ptr<Vault>& Incantation::Vault::GetPrevious() { assert(prev); return prev; }
+
 void Incantation::Vault::Verbose()
 {
 	Console console;
 	if (mVars.empty() && mFuncs.empty())
 	{
-		console.log("Empty vault");
+		console.log("\nEmpty vault"); 
+		console.log("Previous", (prev ? "exists" : "none"));
+		console.nl();
 		return;
 	}
-	console.log("Verbosing Vault: vars:", mVars.size());
+	console.log("\nVerbosing Vault: vars:", mVars.size());
 	for (auto& a : mVars)
 	{
-		console.log(a.first);
+		console.log("Var:", a.first);
 	}
 	console.log("funcs", mFuncs.size());
 	for (auto& a : mFuncs)
 	{
-		console.log(a.first);
+		console.log("Function:", a.first);
 	}
+	console.log("Previous", prev);
+	console.nl();
 }
 
 bool Incantation::Vault::IsFunc(const std::string& name, size_t argSize)

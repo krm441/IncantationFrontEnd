@@ -128,7 +128,7 @@ namespace Incantation
 	struct CodeBlockSettings
 	{
 		int GlobalScope = 0, LoopScope = 0, FunctionScope = 0;
-		Vault* previous = nullptr;
+		mutable Ptr<Vault> previous = nullptr;
 	};
 
 	struct BlockStatement
